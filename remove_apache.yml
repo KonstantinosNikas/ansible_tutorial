@@ -1,0 +1,24 @@
+---
+- name: Install Apache with PHP support on all hosts
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: absent
+
+    - name: Add PHP support for Apache
+      apt:
+        name:
+          - libapache2-mod-php
+          - php
+        state: absent
+
+   
+

@@ -1,0 +1,31 @@
+---
+- name: Install Apache with PHP support on all hosts
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Apache2 and PHP
+      apt:
+        name:
+          - apache2
+          - libapache2-mod-php
+          - php
+        state: latest
+
+    - name: Ensure Apache is running and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Create test html page
+      copy:
+        src: default_site.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: 0644

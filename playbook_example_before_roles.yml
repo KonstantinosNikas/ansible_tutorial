@@ -1,0 +1,123 @@
+---
+- name: Update all systems
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Install system updates
+      tags: always
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_distribution == "Debian"
+
+# --------------------------------------------
+
+- name: Setup workstations
+  hosts: workstations
+  become: true
+
+  tasks: 
+    - name: Install unzip
+      package:
+        name: unzip
+        state: present
+
+    - name: Install terraform
+      unarchive:
+        src: https://releases.hashicorp.com/terraform/0.12.28/terraform_0.12.28_linux_amd64.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+# --------------------------------------------
+
+- name: Install Apache with PHP on webservers
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Install Apache2
+      tags: [apache, apache2, debian]
+      apt:
+        name: apache2
+        state: latest
+      when: ansible_distribution == "Debian"
+
+    - name: Add PHP support for Apache
+      apt:
+        name:
+          - libapache2-mod-php
+          - php
+        state: latest
+      when: ansible_distribution == "Debian"
+
+    - name: Check if Apache is active
+      command: systemctl is-active apache2
+      register: apache_status
+
+    - name: Show Apache status
+      debug:
+        msg: "Apache status: {{ apache_status.stdout }}"
+
+    - name: Ensure Apache is running and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+      when: apache_status.stdout != "active"
+
+    - name: Set ServerAdmin email in config
+      lineinfile:
+        path: /etc/apache2/apache2.conf
+        regexp: '^ServerAdmin'
+        line: 'ServerAdmin admin@example.com'
+        backup: yes
+      when: ansible_distribution == "Debian"
+
+# --------------------------------------------
+
+- name: Install MariaDB on db servers
+  hosts: db_servers
+  become: true
+
+  tasks:
+    - name: Install MariaDB package (Debian)
+      tags: [db, maria, debian]
+      apt:
+        name: mariadb-server
+        state: latest
+      when: ansible_distribution == "Debian"
+
+    - name: Check if MariaDB is active
+      command: systemctl is-active mariadb
+      register: mariadb_status
+      when: ansible_distribution == "Debian"
+
+    - name: Show MariaDB status
+      debug:
+        msg: "MariaDB status: {{ mariadb_status.stdout }}"
+      when: mariadb_status is defined
+
+# --------------------------------------------
+
+- name: Install Samba on file servers
+  hosts: file_servers
+  become: true
+
+  tasks:
+    - name: Install samba package
+      tags: [samba]
+      package:
+        name: samba
+        state: latest
+
+    - name: Add custom comment in smb.conf
+      lineinfile:
+        path: /etc/samba/smb.conf
+        line: '# Installed via Ansible playbook'
+        insertafter: '[global]'
+        state: present
+

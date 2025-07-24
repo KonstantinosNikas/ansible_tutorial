@@ -1,0 +1,25 @@
+- hosts: all
+  become: true
+  tasks:
+
+    - name: create kostas user
+      tags: always
+      user: 
+        name: kostas
+        groups: root
+
+    - name: add ssh key for kostas
+      tags: always
+      authorized_key:
+        user: kostas
+        key: ""
+
+    - name: add sudoers file for kostas
+      tags: always
+      copy:
+        src: sudoer_kostas
+        dest: /etc/sudoers.d/kostas
+        owner: root
+        group: root
+        mode: '0440'
+
